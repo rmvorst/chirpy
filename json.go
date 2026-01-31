@@ -4,15 +4,21 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"time"
+
+	"github.com/google/uuid"
 )
 
 type validResponse struct {
-	Body         string `json:"body"`
-	Cleaned_body string `json:"cleaned_body"`
-	Valid        bool   `json:"valid"`
+	ID        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	Body      string    `json:"body"`
+	UserID    uuid.UUID `json:"user_id"`
 }
 type errorResponse struct {
-	Err string `json:"error"`
+	Err   string `json:"error"`
+	Valid bool   `json:"valid"`
 }
 
 func postJSON(resp interface{}, statusCode int, w http.ResponseWriter) {

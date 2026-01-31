@@ -8,7 +8,7 @@ func (cfg *apiConfig) routes(fpathRoot string) *http.ServeMux {
 	mux.Handle("/app/", cfg.serverHitInc(fileServerHandler))
 
 	mux.HandleFunc("GET /api/healthz", handlerReadiness)
-	mux.HandleFunc("POST /api/validate_chirp", validateChirp)
+	mux.HandleFunc("POST /api/chirps", cfg.handleCreateChirp)
 	mux.HandleFunc("POST /api/users", cfg.handlerCreateUser)
 
 	mux.HandleFunc("GET /admin/metrics", cfg.handlerMetrics)
