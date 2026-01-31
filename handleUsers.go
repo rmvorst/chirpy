@@ -7,11 +7,14 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/rmvorst/chirpy/internal/database"
+	"github.com/rmvorst/chirpy/internal/database/auth"
 )
 
 func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, req *http.Request) {
 	type userCreateRequest struct {
-		Email string `json:"email"`
+		Password string `json:"password"`
+		Email    string `json:"email"`
 	}
 	type userCreateSuccess struct {
 		ID         uuid.UUID `json:"id"`
@@ -31,7 +34,19 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, req *http.Request
 		return
 	}
 
-	user, err := cfg.db.CreateUser(req.Context(), params.Email)
+	hashedPassword, err := auth.HashPassword(params.Password)
+	if err != nil {
+		postErr := errorResponse{
+			Err: fmt.Sprintf("Error hashing user password: %s\n", err),
+		}
+		postJSON(postErr, http.StatusInternalServerError, w)
+		return
+	}
+	createUserParameters := database.CreateUserParams{
+		HashedPassword: hashedPassword,
+		Email:          params.Email,
+	}
+	user, err := cfg.db.CreateUser(req.Context(), createUserParameters)
 	if err != nil {
 		postErr := errorResponse{
 			Err: fmt.Sprintf("Error creating new user: %s\n", err),
@@ -46,5 +61,4 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, req *http.Request
 		Email:      user.Email,
 	}
 	postJSON(createdUser, http.StatusCreated, w)
-
 }

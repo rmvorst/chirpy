@@ -12,6 +12,7 @@ func (cfg *apiConfig) routes(fpathRoot string) *http.ServeMux {
 	mux.HandleFunc("GET /api/chirps/{chirp_id}", cfg.getChirp)
 	mux.HandleFunc("POST /api/chirps", cfg.handleCreateChirp)
 	mux.HandleFunc("POST /api/users", cfg.handlerCreateUser)
+	mux.HandleFunc("POST /api/login", cfg.handlerLogin)
 
 	mux.HandleFunc("GET /admin/metrics", cfg.handlerMetrics)
 	mux.HandleFunc("POST /admin/reset", cfg.handlerResetServerHits)
