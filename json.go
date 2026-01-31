@@ -6,6 +6,15 @@ import (
 	"net/http"
 )
 
+type validResponse struct {
+	Body         string `json:"body"`
+	Cleaned_body string `json:"cleaned_body"`
+	Valid        bool   `json:"valid"`
+}
+type errorResponse struct {
+	Err string `json:"error"`
+}
+
 func postJSON(resp interface{}, statusCode int, w http.ResponseWriter) {
 	dat, err := json.Marshal(resp)
 	if err != nil {

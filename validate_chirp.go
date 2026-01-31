@@ -7,27 +7,19 @@ import (
 	"strings"
 )
 
-type parameters struct {
-	Body string `json:"body"`
-}
-type validResponse struct {
-	Body         string `json:"body"`
-	Cleaned_body string `json:"cleaned_body"`
-	Valid        bool   `json:"valid"`
-}
-type errorResponse struct {
-	Err string `json:"error"`
-}
-
 func validateChirp(w http.ResponseWriter, req *http.Request) {
 	const maxChirpLength = 140
+
+	type parameters struct {
+		Body string `json:"body"`
+	}
 
 	decoder := json.NewDecoder(req.Body)
 	params := parameters{}
 	err := decoder.Decode(&params)
 	if err != nil {
 		postErr := errorResponse{
-			Err: fmt.Sprintf("Error decoding parameters: %s\n", err),
+			Err: fmt.Sprintf("Error decoding chirp body.: %s\n", err),
 		}
 		postJSON(postErr, http.StatusInternalServerError, w)
 		return
