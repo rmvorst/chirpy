@@ -18,6 +18,9 @@ type apiConfig struct {
 	db             *database.Queries
 }
 
+const port = "8080"
+const filepathRoot = "."
+
 func errorHandle(introString string, err error) {
 	if err != nil {
 		fmt.Printf("%s: %v\n", introString, err)
@@ -25,9 +28,12 @@ func errorHandle(introString string, err error) {
 }
 
 func main() {
+	server := run()
+	log.Fatal(server.ListenAndServe())
+}
+
+func run() *http.Server {
 	godotenv.Load()
-	const filepathRoot = "."
-	const port = "8080"
 
 	dbURL := os.Getenv("DB_URL")
 	if dbURL == "" {
@@ -43,20 +49,12 @@ func main() {
 		db:             dbQueries,
 	}
 
-	serverMux := http.NewServeMux()
-	fileServerHandler := http.StripPrefix("/app", http.FileServer(http.Dir(filepathRoot)))
-	serverMux.Handle("/app/", apiCfg.serverHitInc(fileServerHandler))
-
-	serverMux.HandleFunc("GET /api/healthz", handlerReadiness)
-	serverMux.HandleFunc("POST /api/validate_chirp", validateChirp)
-
-	serverMux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
-	serverMux.HandleFunc("POST /admin/reset", apiCfg.handlerResetServerHits)
-
+	mux := apiCfg.routes(filepathRoot)
 	server := &http.Server{
 		Addr:    ":" + port,
-		Handler: serverMux,
+		Handler: mux,
 	}
-	log.Printf("Servign on port %s\n", port)
-	log.Fatal(server.ListenAndServe())
+	log.Printf("Serving on port %s\n", port)
+
+	return server
 }
