@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"log"
+	"fmt"
 	"net/http"
 	"strings"
 )
@@ -10,76 +10,57 @@ import (
 type parameters struct {
 	Body string `json:"body"`
 }
-type postVals struct {
+type validResponse struct {
 	Body         string `json:"body"`
 	Cleaned_body string `json:"cleaned_body"`
 	Valid        bool   `json:"valid"`
 }
-type errVals struct {
+type errorResponse struct {
 	Err string `json:"error"`
 }
 
-var profaneWords = []string{"kerfuffle", "sharbert", "fornax"}
-
-func postError(resp errVals, w http.ResponseWriter) {
-	dat, err := json.Marshal(resp)
-	if err != nil {
-		log.Printf("Error marshalling JSON: %s", err)
-		w.WriteHeader(500)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-	w.Write(dat)
-}
-
-func postValid(resp postVals, w http.ResponseWriter) {
-	dat, err := json.Marshal(resp)
-	if err != nil {
-		log.Printf("Error marshalling JSON: %s", err)
-		w.WriteHeader(500)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-	w.Write(dat)
-}
-
-func cleanBody(body string) string {
-	bodyWords := strings.Fields(body)
-	for idx, substring := range bodyWords {
-		for _, profaneWord := range profaneWords {
-			if strings.ToLower(substring) == profaneWord {
-				bodyWords[idx] = "****"
-			}
-		}
-	}
-	return strings.Join(bodyWords, " ")
-}
-
 func validateChirp(w http.ResponseWriter, req *http.Request) {
+	const maxChirpLength = 140
 
 	decoder := json.NewDecoder(req.Body)
 	params := parameters{}
 	err := decoder.Decode(&params)
 	if err != nil {
-		log.Printf("Error decoding parameters: %s", err)
-		w.WriteHeader(500)
+		postErr := errorResponse{
+			Err: fmt.Sprintf("Error decoding parameters: %s\n", err),
+		}
+		postJSON(postErr, http.StatusInternalServerError, w)
 		return
 	}
 
-	if len(params.Body) > 140 {
-		postErr := errVals{
+	if len(params.Body) > maxChirpLength {
+		postErr := errorResponse{
 			Err: "Chirp is too long",
 		}
-		postError(postErr, w)
+		postJSON(postErr, http.StatusBadRequest, w)
 		return
 	}
 
-	postVal := postVals{
+	postVal := validResponse{
 		Body:         params.Body,
 		Cleaned_body: cleanBody(params.Body),
 		Valid:        true,
 	}
-	postValid(postVal, w)
+	postJSON(postVal, http.StatusOK, w)
+}
+
+func cleanBody(body string) string {
+	profaneWords := map[string]struct{}{
+		"kerfuffle": {},
+		"sharbert":  {},
+		"fornax":    {},
+	}
+
+	bodyWords := strings.Fields(body)
+	for idx, substring := range bodyWords {
+		if _, ok := profaneWords[strings.ToLower(substring)]; ok {
+			bodyWords[idx] = "****"
+		}
+	}
+	return strings.Join(bodyWords, " ")
 }
