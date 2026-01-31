@@ -11,3 +11,7 @@ RETURNING *;
 
 -- name: ReturnChirps :many
 SELECT * FROM chirps;
+
+-- name: ReturnChirp :one
+SELECT * FROM chirps
+WHERE id = $1;
