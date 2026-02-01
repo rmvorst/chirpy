@@ -17,8 +17,7 @@ type validResponse struct {
 	UserID    uuid.UUID `json:"user_id"`
 }
 type errorResponse struct {
-	Err   string `json:"error"`
-	Valid bool   `json:"valid"`
+	Err string `json:"error"`
 }
 
 func postJSON(resp interface{}, statusCode int, w http.ResponseWriter) {

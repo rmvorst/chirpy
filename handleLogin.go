@@ -13,12 +13,14 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, req *http.Request) {
 	type requestBody struct {
 		Password string `json:"password"`
 		Email    string `json:"email"`
+		Expires  int    `json:"expires_in_seconds"`
 	}
 	type validUser struct {
 		ID        uuid.UUID `json:"id"`
 		CreatedAt time.Time `json:"created_at"`
 		UpdatedAt time.Time `json:"updated_at"`
 		Email     string    `json:"email"`
+		Token     string    `json:"token"`
 	}
 
 	decoder := json.NewDecoder(req.Body)
@@ -30,6 +32,9 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, req *http.Request) {
 		}
 		postJSON(postErr, http.StatusInternalServerError, w)
 		return
+	}
+	if params.Expires <= 0 || params.Expires > 3600 {
+		params.Expires = 3600
 	}
 
 	user, err := cfg.db.EmailLookup(req.Context(), params.Email)
@@ -50,11 +55,14 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	tokenString, err := auth.MakeJWT(user.ID, cfg.secret, time.Duration(params.Expires)*time.Second)
+
 	postUser := validUser{
 		ID:        user.ID,
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
 		Email:     user.Email,
+		Token:     tokenString,
 	}
 	postJSON(postUser, http.StatusOK, w)
 
