@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -28,17 +29,19 @@ func (cfg *apiConfig) handleCreateChirp(w http.ResponseWriter, req *http.Request
 
 	const maxChirpLength = 140
 
-	params, err := createChirpDecodeJSON(req)
-	if err != nil {
-		postErr := errorResponse{Err: fmt.Sprintf("%s", err)}
-		postJSON(postErr, http.StatusInternalServerError, w)
-		return
-	}
-
 	userID, err := validateUser(cfg, req)
 	if err != nil {
 		postErr := errorResponse{Err: fmt.Sprintf("%s", err)}
 		postJSON(postErr, http.StatusUnauthorized, w)
+		return
+	}
+
+	decoder := json.NewDecoder(req.Body)
+	params := createChirpRequest{}
+	err = decoder.Decode(&params)
+	if err != nil {
+		postErr := errorResponse{Err: fmt.Sprintf("%s", err)}
+		postJSON(postErr, http.StatusInternalServerError, w)
 		return
 	}
 
@@ -66,29 +69,24 @@ func (cfg *apiConfig) handleCreateChirp(w http.ResponseWriter, req *http.Request
 	postJSON(postValid, http.StatusCreated, w)
 }
 
-func createChirpDecodeJSON(req *http.Request) (createChirpRequest, error) {
-	decoder := json.NewDecoder(req.Body)
-	params := createChirpRequest{}
-	err := decoder.Decode(&params)
-	return params, err
-}
-
 func validateUser(cfg *apiConfig, req *http.Request) (uuid.UUID, error) {
 	authToken, err := auth.GetBearerToken(req.Header)
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("Authentication error\n")
+		log.Println("Error in validateUser: Failed to validate user")
+		return uuid.Nil, fmt.Errorf("Authentication error")
 	}
 
 	validID, err := auth.ValidateJWT(authToken, cfg.secret)
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("Authentication error\n")
+		log.Println("Error in validateUser: Failed to validate user")
+		return uuid.Nil, fmt.Errorf("Authentication error")
 	}
 	return validID, nil
 }
 
 func checkChirpLength(maxChirpLength int, params createChirpRequest) error {
 	if len(params.Body) > maxChirpLength {
-		return fmt.Errorf("Chirp is too long\n")
+		return fmt.Errorf("Chirp is too long")
 	}
 	return nil
 }
@@ -102,7 +100,7 @@ func generateChirp(params createChirpRequest, userID uuid.UUID, cfg *apiConfig, 
 	}
 	chirp, err := cfg.db.CreateChirp(req.Context(), chirpParams)
 	if err != nil {
-		return database.Chirp{}, fmt.Errorf("Error creating chirp\n")
+		return database.Chirp{}, fmt.Errorf("Error creating chirp")
 	}
 	return chirp, nil
 }
