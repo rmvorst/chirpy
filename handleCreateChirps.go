@@ -5,60 +5,57 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/rmvorst/chirpy/internal/auth"
 	"github.com/rmvorst/chirpy/internal/database"
-	"github.com/rmvorst/chirpy/internal/database/auth"
 )
 
-type parameters struct {
+type createChirpRequest struct {
 	Body   string    `json:"body"`
 	UserID uuid.UUID `json:"user_id"`
 }
 
 func (cfg *apiConfig) handleCreateChirp(w http.ResponseWriter, req *http.Request) {
+	type validResponse struct {
+		ID        uuid.UUID `json:"id"`
+		CreatedAt time.Time `json:"created_at"`
+		UpdatedAt time.Time `json:"updated_at"`
+		Body      string    `json:"body"`
+		UserID    uuid.UUID `json:"user_id"`
+	}
+
 	const maxChirpLength = 140
 
-	params, err := decodeJson(req)
+	params, err := createChirpDecodeJSON(req)
 	if err != nil {
-		postErr := writeErrorPost(err)
+		postErr := errorResponse{Err: fmt.Sprintf("%s", err)}
 		postJSON(postErr, http.StatusInternalServerError, w)
 		return
 	}
 
 	userID, err := validateUser(cfg, req)
 	if err != nil {
-		postErr := writeErrorPost(err)
+		postErr := errorResponse{Err: fmt.Sprintf("%s", err)}
 		postJSON(postErr, http.StatusUnauthorized, w)
 		return
 	}
 
 	err = checkChirpLength(maxChirpLength, params)
 	if err != nil {
-		postErr := writeErrorPost(err)
+		postErr := errorResponse{Err: fmt.Sprintf("%s", err)}
 		postJSON(postErr, http.StatusBadRequest, w)
 		return
 	}
 
 	chirp, err := generateChirp(params, userID, cfg, req)
 	if err != nil {
-		postErr := writeErrorPost(err)
+		postErr := errorResponse{Err: fmt.Sprintf("%s", err)}
 		postJSON(postErr, http.StatusInternalServerError, w)
 		return
 	}
 
-	postValid := writeValidPost(chirp)
-	postJSON(postValid, http.StatusCreated, w)
-}
-
-func writeErrorPost(err error) errorResponse {
-	postErr := errorResponse{
-		Err: fmt.Sprintf("%s", err),
-	}
-	return postErr
-}
-
-func writeValidPost(chirp database.Chirp) validResponse {
 	postValid := validResponse{
 		ID:        chirp.ID,
 		CreatedAt: chirp.CreatedAt,
@@ -66,14 +63,13 @@ func writeValidPost(chirp database.Chirp) validResponse {
 		Body:      chirp.Body,
 		UserID:    chirp.UserID,
 	}
-	return postValid
+	postJSON(postValid, http.StatusCreated, w)
 }
 
-func decodeJson(req *http.Request) (parameters, error) {
+func createChirpDecodeJSON(req *http.Request) (createChirpRequest, error) {
 	decoder := json.NewDecoder(req.Body)
-	params := parameters{}
+	params := createChirpRequest{}
 	err := decoder.Decode(&params)
-
 	return params, err
 }
 
@@ -90,14 +86,14 @@ func validateUser(cfg *apiConfig, req *http.Request) (uuid.UUID, error) {
 	return validID, nil
 }
 
-func checkChirpLength(maxChirpLength int, params parameters) error {
+func checkChirpLength(maxChirpLength int, params createChirpRequest) error {
 	if len(params.Body) > maxChirpLength {
 		return fmt.Errorf("Chirp is too long\n")
 	}
 	return nil
 }
 
-func generateChirp(params parameters, userID uuid.UUID, cfg *apiConfig, req *http.Request) (database.Chirp, error) {
+func generateChirp(params createChirpRequest, userID uuid.UUID, cfg *apiConfig, req *http.Request) (database.Chirp, error) {
 	cleanedBody := cleanBody(params.Body)
 
 	chirpParams := database.CreateChirpParams{

@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/rmvorst/chirpy/internal/auth"
 	"github.com/rmvorst/chirpy/internal/database"
-	"github.com/rmvorst/chirpy/internal/database/auth"
 )
 
 func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, req *http.Request) {

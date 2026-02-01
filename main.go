@@ -21,6 +21,8 @@ type apiConfig struct {
 
 const port = "8080"
 const filepathRoot = "."
+const authExpiryTime = 3600
+const refreshExpiryTime = 5184000
 
 func errorHandle(introString string, err error) {
 	if err != nil {

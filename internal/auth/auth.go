@@ -1,7 +1,10 @@
 package auth
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -29,6 +32,7 @@ func MakeJWT(userID uuid.UUID, tokenSecret string, expiresIn time.Duration) (str
 		Subject:   userID.String(),
 	}).SignedString([]byte(tokenSecret))
 	if err != nil {
+		log.Println("Error in auth.MakeJWT: Making JWT failed")
 		return "", err
 	}
 
@@ -42,13 +46,16 @@ func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
 		return []byte(tokenSecret), nil
 	})
 	if err != nil {
+		log.Println("Error in auth.ValidateJWT: Parsing provided token string to create JWT failed")
 		return uuid.Nil, err
 	}
 
 	if !token.Valid && claims.Issuer == Issuer {
+		log.Println("Error in auth.ValidateJWT: Token not valid")
 		return uuid.Nil, fmt.Errorf("Token not valid")
 	}
 	id, err := uuid.Parse(claims.Subject)
+	log.Println("Error in auth.ValidateJWT: Parsing user id from JWT string failed")
 	if err != nil {
 		return uuid.Nil, err
 	}
@@ -59,7 +66,16 @@ func GetBearerToken(headers http.Header) (string, error) {
 	authHeader := headers.Get("Authorization")
 	tokenString, found := strings.CutPrefix(authHeader, "Bearer ")
 	if !found {
+		log.Println("Error in auth.GetBearerToken: correct authorization header not found")
 		return "", fmt.Errorf("Token String not found")
 	}
+	return tokenString, nil
+}
+
+func MakeRefreshToken() (string, error) {
+	randData := make([]byte, 32)
+	rand.Read(randData)
+	tokenString := hex.EncodeToString(randData)
+
 	return tokenString, nil
 }
