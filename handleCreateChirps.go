@@ -31,6 +31,7 @@ func (cfg *apiConfig) handleCreateChirp(w http.ResponseWriter, req *http.Request
 
 	userID, err := validateUser(cfg, req)
 	if err != nil {
+		log.Println("Error in handleCreateChirp: Could not authenticate user")
 		postErr := errorResponse{Err: fmt.Sprintf("%s", err)}
 		postJSON(postErr, http.StatusUnauthorized, w)
 		return
@@ -40,6 +41,7 @@ func (cfg *apiConfig) handleCreateChirp(w http.ResponseWriter, req *http.Request
 	params := createChirpRequest{}
 	err = decoder.Decode(&params)
 	if err != nil {
+		log.Println("Error in handleCreateChirp: Could not decode incoming JSON")
 		postErr := errorResponse{Err: fmt.Sprintf("%s", err)}
 		postJSON(postErr, http.StatusInternalServerError, w)
 		return
@@ -47,6 +49,7 @@ func (cfg *apiConfig) handleCreateChirp(w http.ResponseWriter, req *http.Request
 
 	err = checkChirpLength(maxChirpLength, params)
 	if err != nil {
+		log.Println("Error in handleCreateChirp: Chirp too long")
 		postErr := errorResponse{Err: fmt.Sprintf("%s", err)}
 		postJSON(postErr, http.StatusBadRequest, w)
 		return
@@ -54,11 +57,13 @@ func (cfg *apiConfig) handleCreateChirp(w http.ResponseWriter, req *http.Request
 
 	chirp, err := generateChirp(params, userID, cfg, req)
 	if err != nil {
+		log.Println("Error in handleCreateChirp: Could not generate chirp")
 		postErr := errorResponse{Err: fmt.Sprintf("%s", err)}
 		postJSON(postErr, http.StatusInternalServerError, w)
 		return
 	}
 
+	log.Println("Success: Chirp posted")
 	postValid := validResponse{
 		ID:        chirp.ID,
 		CreatedAt: chirp.CreatedAt,
@@ -72,14 +77,12 @@ func (cfg *apiConfig) handleCreateChirp(w http.ResponseWriter, req *http.Request
 func validateUser(cfg *apiConfig, req *http.Request) (uuid.UUID, error) {
 	authToken, err := auth.GetBearerToken(req.Header)
 	if err != nil {
-		log.Println("Error in validateUser: Failed to validate user")
-		return uuid.Nil, fmt.Errorf("Authentication error")
+		return uuid.Nil, fmt.Errorf("Authentication error - no bearer token")
 	}
 
 	validID, err := auth.ValidateJWT(authToken, cfg.secret)
 	if err != nil {
-		log.Println("Error in validateUser: Failed to validate user")
-		return uuid.Nil, fmt.Errorf("Authentication error")
+		return uuid.Nil, fmt.Errorf("Authentication error - incorrect auth token")
 	}
 	return validID, nil
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -19,9 +20,8 @@ type validResponse struct {
 func (cfg *apiConfig) getChirps(w http.ResponseWriter, req *http.Request) {
 	chirps, err := cfg.db.ReturnChirps(req.Context())
 	if err != nil {
-		postErr := errorResponse{
-			Err: fmt.Sprintf("Error getting chirps: %s\n", err),
-		}
+		log.Println("Error in getChirps: Cannot get chirps")
+		postErr := errorResponse{Err: fmt.Sprintf("%s\n", err)}
 		postJSON(postErr, http.StatusInternalServerError, w)
 		return
 	}
@@ -35,6 +35,7 @@ func (cfg *apiConfig) getChirps(w http.ResponseWriter, req *http.Request) {
 			UserID:    chirp.UserID,
 		})
 	}
+	log.Printf("Success: Retrieved chirps")
 	postJSON(postChirps, http.StatusOK, w)
 }
 
@@ -42,22 +43,21 @@ func (cfg *apiConfig) getChirp(w http.ResponseWriter, req *http.Request) {
 	rawID := req.PathValue("chirp_id")
 	chirpID, err := uuid.Parse(rawID)
 	if err != err {
-		postErr := errorResponse{
-			Err: fmt.Sprintf("Error parsing chirp UUID: %s\n", err),
-		}
+		log.Println("Error parsing chirp id:", rawID)
+		postErr := errorResponse{Err: fmt.Sprintf("%s\n", err)}
 		postJSON(postErr, http.StatusBadRequest, w)
 		return
 	}
 
 	chirp, err := cfg.db.ReturnChirp(req.Context(), chirpID)
 	if err != nil {
-		postErr := errorResponse{
-			Err: fmt.Sprintf("Error getting chirp: %s\n", err),
-		}
+		log.Println("Error returning the chirp:", rawID)
+		postErr := errorResponse{Err: fmt.Sprintf("%s\n", err)}
 		postJSON(postErr, http.StatusNotFound, w)
 		return
 	}
 
+	log.Println("Success: Returned chirp:", rawID)
 	postChirp := validResponse{
 		ID:        chirp.ID,
 		CreatedAt: chirp.CreatedAt,

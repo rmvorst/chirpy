@@ -28,7 +28,7 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, req *http.Request
 	params := userCreateRequest{}
 	err := decoder.Decode(&params)
 	if err != nil {
-		log.Println("Error decoding incoming JSON")
+		log.Println("Error in handlerCreateUser: Could not decode incoming JSON")
 		postErr := errorResponse{Err: fmt.Sprintf("%s\n", err)}
 		postJSON(postErr, http.StatusInternalServerError, w)
 		return
@@ -36,7 +36,7 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, req *http.Request
 
 	hashedPassword, err := auth.HashPassword(params.Password)
 	if err != nil {
-		log.Println("Error hashing user password")
+		log.Println("Error in handlerCreateUser: Could not hash password")
 		postErr := errorResponse{Err: fmt.Sprintf("%s\n", err)}
 		postJSON(postErr, http.StatusInternalServerError, w)
 		return
@@ -48,12 +48,13 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, req *http.Request
 	}
 	user, err := cfg.db.CreateUser(req.Context(), createUserParameters)
 	if err != nil {
-		log.Println("Error creating user")
+		log.Println("Error in handlerCreateUser: Could not create new user")
 		postErr := errorResponse{Err: fmt.Sprintf("%s\n", err)}
 		postJSON(postErr, http.StatusInternalServerError, w)
 		return
 	}
 
+	log.Println("User successfully created")
 	createdUser := userCreateResponse{
 		ID:         user.ID,
 		Created_at: user.CreatedAt,
@@ -77,6 +78,7 @@ func (cfg *apiConfig) handleUpdateAccount(w http.ResponseWriter, req *http.Reque
 
 	userID, err := validateUser(cfg, req)
 	if err != nil {
+		log.Println("Error in handleUpdateAccount: Could not validate user")
 		postErr := errorResponse{Err: fmt.Sprintf("%s\n", err)}
 		postJSON(postErr, http.StatusUnauthorized, w)
 		return
@@ -86,6 +88,7 @@ func (cfg *apiConfig) handleUpdateAccount(w http.ResponseWriter, req *http.Reque
 	params := userUpdateRequest{}
 	err = decoder.Decode(&params)
 	if err != nil {
+		log.Println("Error in handleUpdateAccount: Could not decode JSON")
 		postErr := errorResponse{Err: fmt.Sprintf("%s\n", err)}
 		postJSON(postErr, http.StatusInternalServerError, w)
 		return
@@ -93,7 +96,7 @@ func (cfg *apiConfig) handleUpdateAccount(w http.ResponseWriter, req *http.Reque
 
 	hashedPassword, err := auth.HashPassword(params.Password)
 	if err != nil {
-		log.Println("Error hashing user password")
+		log.Println("Error in handleUpdateAccount: Error hashing user password")
 		postErr := errorResponse{Err: fmt.Sprintf("%s\n", err)}
 		postJSON(postErr, http.StatusInternalServerError, w)
 		return
@@ -106,12 +109,13 @@ func (cfg *apiConfig) handleUpdateAccount(w http.ResponseWriter, req *http.Reque
 	}
 	user, err := cfg.db.UpdateUser(req.Context(), updateUserParameters)
 	if err != nil {
-		log.Println("Error updating user")
+		log.Println("Error in handleUpdateAccount: Error updating user account")
 		postErr := errorResponse{Err: fmt.Sprintf("%s\n", err)}
 		postJSON(postErr, http.StatusInternalServerError, w)
 		return
 	}
 
+	log.Println("Success: Account update for user:", user.ID)
 	createdUser := userUpdateResponse{
 		ID:         user.ID,
 		Created_at: user.CreatedAt,

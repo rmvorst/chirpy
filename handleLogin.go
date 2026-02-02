@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -26,8 +27,11 @@ type loginValidUser struct {
 
 func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, req *http.Request) {
 
-	params, err := loginDecodeJSON(req)
+	decoder := json.NewDecoder(req.Body)
+	params := loginRequest{}
+	err := decoder.Decode(&params)
 	if err != nil {
+		log.Println("Error in handlerLogin: Could not decode JSON")
 		postErr := errorResponse{Err: fmt.Sprintf("%s", err)}
 		postJSON(postErr, http.StatusInternalServerError, w)
 		return
@@ -35,6 +39,7 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, req *http.Request) {
 
 	user, err := cfg.db.EmailLookup(req.Context(), params.Email)
 	if err != nil {
+		log.Println("Error in handlerLogin: Could not lookup user email:", params.Email)
 		postErr := errorResponse{Err: "Incorrect email or password"}
 		postJSON(postErr, http.StatusUnauthorized, w)
 		return
@@ -42,6 +47,7 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, req *http.Request) {
 
 	match, err := auth.CheckPasswordHash(params.Password, user.HashedPassword)
 	if err != nil || !match {
+		log.Println("Error in handlerLogin: Failed to check password hash for user:", user.ID)
 		postErr := errorResponse{Err: "Incorrect email or password"}
 		postJSON(postErr, http.StatusUnauthorized, w)
 		return
@@ -49,6 +55,7 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, req *http.Request) {
 
 	authTokenString, err := auth.MakeJWT(user.ID, cfg.secret, time.Duration(authExpiryTime)*time.Second)
 	if err != nil {
+		log.Println("Error in handlerLogin: Failed to make JWT for user:", user.ID)
 		postErr := errorResponse{Err: fmt.Sprintf("%s", err)}
 		postJSON(postErr, http.StatusInternalServerError, w)
 		return
@@ -56,6 +63,7 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, req *http.Request) {
 
 	refreshTokenString, err := auth.MakeRefreshToken()
 	if err != nil {
+		log.Println("Error in handlerLogin: Failed to make refresh token for user:", user.ID)
 		postErr := errorResponse{Err: fmt.Sprintf("%s", err)}
 		postJSON(postErr, http.StatusInternalServerError, w)
 		return
@@ -67,11 +75,13 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, req *http.Request) {
 	}
 	_, err = cfg.db.CreateToken(req.Context(), refreshTokenParams)
 	if err != nil {
+		log.Println("Error in handlerLogin: Failed to add refresh token to server for user:", user.ID)
 		postErr := errorResponse{Err: fmt.Sprintf("%s", err)}
 		postJSON(postErr, http.StatusInternalServerError, w)
 		return
 	}
 
+	log.Println("Success: logged in user:", user.ID)
 	postUser := loginValidUser{
 		ID:           user.ID,
 		CreatedAt:    user.CreatedAt,
@@ -81,11 +91,4 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, req *http.Request) {
 		RefreshToken: refreshTokenString,
 	}
 	postJSON(postUser, http.StatusOK, w)
-}
-
-func loginDecodeJSON(req *http.Request) (loginRequest, error) {
-	decoder := json.NewDecoder(req.Body)
-	params := loginRequest{}
-	err := decoder.Decode(&params)
-	return params, err
 }

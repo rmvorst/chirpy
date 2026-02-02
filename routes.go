@@ -16,6 +16,7 @@ func (cfg *apiConfig) routes(fpathRoot string) *http.ServeMux {
 	mux.HandleFunc("POST /api/refresh", cfg.handleRefresh)
 	mux.HandleFunc("POST /api/revoke", cfg.handleRevoke)
 	mux.HandleFunc("PUT /api/users", cfg.handleUpdateAccount)
+	mux.HandleFunc("DELETE /api/chirps/{chirp_id}", cfg.handleDeleteChirps)
 
 	mux.HandleFunc("GET /admin/metrics", cfg.handlerMetrics)
 	mux.HandleFunc("POST /admin/reset", cfg.handlerResetServerHits)
