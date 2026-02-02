@@ -18,10 +18,11 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, req *http.Request
 		Email    string `json:"email"`
 	}
 	type userCreateResponse struct {
-		ID         uuid.UUID `json:"id"`
-		Created_at time.Time `json:"created_at"`
-		Updated_at time.Time `json:"updated_at"`
-		Email      string    `json:"email"`
+		ID            uuid.UUID `json:"id"`
+		Created_at    time.Time `json:"created_at"`
+		Updated_at    time.Time `json:"updated_at"`
+		Email         string    `json:"email"`
+		Is_Chirpy_Red bool      `json:"is_chirpy_red"`
 	}
 
 	decoder := json.NewDecoder(req.Body)
@@ -30,7 +31,7 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, req *http.Request
 	if err != nil {
 		log.Println("Error in handlerCreateUser: Could not decode incoming JSON")
 		postErr := errorResponse{Err: fmt.Sprintf("%s\n", err)}
-		postJSON(postErr, http.StatusInternalServerError, w)
+		postJSON(postErr, http.StatusBadRequest, w)
 		return
 	}
 
@@ -56,10 +57,11 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, req *http.Request
 
 	log.Println("User successfully created")
 	createdUser := userCreateResponse{
-		ID:         user.ID,
-		Created_at: user.CreatedAt,
-		Updated_at: user.UpdatedAt,
-		Email:      user.Email,
+		ID:            user.ID,
+		Created_at:    user.CreatedAt,
+		Updated_at:    user.UpdatedAt,
+		Email:         user.Email,
+		Is_Chirpy_Red: user.IsChirpyRed,
 	}
 	postJSON(createdUser, http.StatusCreated, w)
 }
@@ -70,10 +72,11 @@ func (cfg *apiConfig) handleUpdateAccount(w http.ResponseWriter, req *http.Reque
 		Email    string `json:"email"`
 	}
 	type userUpdateResponse struct {
-		ID         uuid.UUID `json:"id"`
-		Created_at time.Time `json:"created_at"`
-		Updated_at time.Time `json:"updated_at"`
-		Email      string    `json:"email"`
+		ID            uuid.UUID `json:"id"`
+		Created_at    time.Time `json:"created_at"`
+		Updated_at    time.Time `json:"updated_at"`
+		Email         string    `json:"email"`
+		Is_Chirpy_Red bool      `json:"is_chirpy_red"`
 	}
 
 	userID, err := validateUser(cfg, req)
@@ -90,7 +93,7 @@ func (cfg *apiConfig) handleUpdateAccount(w http.ResponseWriter, req *http.Reque
 	if err != nil {
 		log.Println("Error in handleUpdateAccount: Could not decode JSON")
 		postErr := errorResponse{Err: fmt.Sprintf("%s\n", err)}
-		postJSON(postErr, http.StatusInternalServerError, w)
+		postJSON(postErr, http.StatusBadRequest, w)
 		return
 	}
 
@@ -117,10 +120,11 @@ func (cfg *apiConfig) handleUpdateAccount(w http.ResponseWriter, req *http.Reque
 
 	log.Println("Success: Account update for user:", user.ID)
 	createdUser := userUpdateResponse{
-		ID:         user.ID,
-		Created_at: user.CreatedAt,
-		Updated_at: user.UpdatedAt,
-		Email:      user.Email,
+		ID:            user.ID,
+		Created_at:    user.CreatedAt,
+		Updated_at:    user.UpdatedAt,
+		Email:         user.Email,
+		Is_Chirpy_Red: user.IsChirpyRed,
 	}
 	postJSON(createdUser, http.StatusOK, w)
 }

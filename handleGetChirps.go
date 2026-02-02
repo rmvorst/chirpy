@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/rmvorst/chirpy/internal/database"
 )
 
 type validResponse struct {
@@ -18,13 +19,34 @@ type validResponse struct {
 }
 
 func (cfg *apiConfig) getChirps(w http.ResponseWriter, req *http.Request) {
-	chirps, err := cfg.db.ReturnChirps(req.Context())
-	if err != nil {
-		log.Println("Error in getChirps: Cannot get chirps")
-		postErr := errorResponse{Err: fmt.Sprintf("%s\n", err)}
-		postJSON(postErr, http.StatusInternalServerError, w)
-		return
+	var chirps []database.Chirp
+	var err error
+	authorID := req.URL.Query().Get("author_id")
+	if authorID == "" {
+		chirps, err = cfg.db.ReturnChirps(req.Context())
+		if err != nil {
+			log.Println("Error in getChirps: Cannot get chirps")
+			postErr := errorResponse{Err: fmt.Sprintf("%s\n", err)}
+			postJSON(postErr, http.StatusInternalServerError, w)
+			return
+		}
+	} else {
+		authorUUID, err := uuid.Parse(authorID)
+		if err != nil {
+			log.Println("Error in getChirps: Could not parse author id")
+			postErr := errorResponse{Err: fmt.Sprintf("%s\n", err)}
+			postJSON(postErr, http.StatusNotFound, w)
+			return
+		}
+		chirps, err = cfg.db.ReturnUserChirps(req.Context(), authorUUID)
+		if err != nil {
+			log.Println("Error in getChirps: Cannot get chirps for user:", authorUUID)
+			postErr := errorResponse{Err: fmt.Sprintf("%s\n", err)}
+			postJSON(postErr, http.StatusInternalServerError, w)
+			return
+		}
 	}
+
 	postChirps := []validResponse{}
 	for _, chirp := range chirps {
 		postChirps = append(postChirps, validResponse{

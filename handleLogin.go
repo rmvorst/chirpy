@@ -12,20 +12,21 @@ import (
 	"github.com/rmvorst/chirpy/internal/database"
 )
 
-type loginRequest struct {
-	Password string `json:"password"`
-	Email    string `json:"email"`
-}
-type loginValidUser struct {
-	ID           uuid.UUID `json:"id"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
-	Email        string    `json:"email"`
-	Token        string    `json:"token"`
-	RefreshToken string    `json:"refresh_token"`
-}
-
 func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, req *http.Request) {
+	type loginRequest struct {
+		Password string `json:"password"`
+		Email    string `json:"email"`
+	}
+
+	type loginValidUser struct {
+		ID            uuid.UUID `json:"id"`
+		CreatedAt     time.Time `json:"created_at"`
+		UpdatedAt     time.Time `json:"updated_at"`
+		Email         string    `json:"email"`
+		Token         string    `json:"token"`
+		RefreshToken  string    `json:"refresh_token"`
+		Is_Chirpy_Red bool      `json:"is_chirpy_red"`
+	}
 
 	decoder := json.NewDecoder(req.Body)
 	params := loginRequest{}
@@ -33,7 +34,7 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		log.Println("Error in handlerLogin: Could not decode JSON")
 		postErr := errorResponse{Err: fmt.Sprintf("%s", err)}
-		postJSON(postErr, http.StatusInternalServerError, w)
+		postJSON(postErr, http.StatusBadRequest, w)
 		return
 	}
 
@@ -83,12 +84,13 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, req *http.Request) {
 
 	log.Println("Success: logged in user:", user.ID)
 	postUser := loginValidUser{
-		ID:           user.ID,
-		CreatedAt:    user.CreatedAt,
-		UpdatedAt:    user.UpdatedAt,
-		Email:        user.Email,
-		Token:        authTokenString,
-		RefreshToken: refreshTokenString,
+		ID:            user.ID,
+		CreatedAt:     user.CreatedAt,
+		UpdatedAt:     user.UpdatedAt,
+		Email:         user.Email,
+		Token:         authTokenString,
+		RefreshToken:  refreshTokenString,
+		Is_Chirpy_Red: user.IsChirpyRed,
 	}
 	postJSON(postUser, http.StatusOK, w)
 }

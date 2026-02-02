@@ -17,12 +17,12 @@ type apiConfig struct {
 	fileserverHits atomic.Int32
 	db             *database.Queries
 	secret         string
+	polka_key      string
 }
 
 const port = "8080"
 const filepathRoot = "."
 const authExpiryTime = 3600
-const refreshExpiryTime = 5184000
 
 func errorHandle(introString string, err error) {
 	if err != nil {
@@ -51,6 +51,7 @@ func run() *http.Server {
 		fileserverHits: atomic.Int32{},
 		db:             dbQueries,
 		secret:         os.Getenv("SECRET"),
+		polka_key:      os.Getenv("POLKA_KEY"),
 	}
 
 	mux := apiCfg.routes(filepathRoot)

@@ -43,7 +43,7 @@ func (cfg *apiConfig) handleCreateChirp(w http.ResponseWriter, req *http.Request
 	if err != nil {
 		log.Println("Error in handleCreateChirp: Could not decode incoming JSON")
 		postErr := errorResponse{Err: fmt.Sprintf("%s", err)}
-		postJSON(postErr, http.StatusInternalServerError, w)
+		postJSON(postErr, http.StatusBadRequest, w)
 		return
 	}
 

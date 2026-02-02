@@ -73,3 +73,12 @@ func MakeRefreshToken() (string, error) {
 
 	return tokenString, nil
 }
+
+func GetAPIKey(headers http.Header) (string, error) {
+	authHeader := headers.Get("Authorization")
+	apiString, found := strings.CutPrefix(authHeader, "ApiKey ")
+	if !found {
+		return "", fmt.Errorf("Polka API String not found")
+	}
+	return apiString, nil
+}
