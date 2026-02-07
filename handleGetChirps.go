@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -56,6 +57,12 @@ func (cfg *apiConfig) getChirps(w http.ResponseWriter, req *http.Request) {
 			Body:      chirp.Body,
 			UserID:    chirp.UserID,
 		})
+	}
+	sortOrder := req.URL.Query().Get("sort")
+	if sortOrder == "desc" {
+		sort.Slice(postChirps, func(i, j int) bool { return postChirps[i].CreatedAt.After(postChirps[j].CreatedAt) })
+	} else {
+		sort.Slice(postChirps, func(i, j int) bool { return postChirps[i].CreatedAt.Before(postChirps[j].CreatedAt) })
 	}
 	log.Printf("Success: Retrieved chirps")
 	postJSON(postChirps, http.StatusOK, w)
